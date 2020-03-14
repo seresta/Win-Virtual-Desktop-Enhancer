@@ -473,28 +473,64 @@ _SetDesktopName(n:=1, name:=0) {
 
 _GetNextDesktopNumberInRow() {
     i := _GetCurrentDesktopNumber()
-    i := ((mod(i,GeneralWorkspaceSize) == 0) ? i : i+1)
+    if (GeneralWorkspaceSize == 2) {
+        if (i != 2 and i != 4) {
+            i := i+1
+        }
+    }
+    else if (GeneralWorkspaceSize == 3) {
+        if (i != 3 and i != 6 and i != 9) {
+            i := i+1
+        }
+    }
 
     return i
 }
 
 _GetPreviousDesktopNumberInRow() {
     i := _GetCurrentDesktopNumber()
-	i := ((mod(i,GeneralWorkspaceSize) == 1) ? i : i-1)
+	if (GeneralWorkspaceSize == 2) {
+        if (i != 1 and i != 3) {
+            i := i-1
+        }
+    }
+    else if (GeneralWorkspaceSize == 3) {
+        if (i != 1 and i != 4 and i != 7) {
+            i := i-1
+        }
+    }
 
     return i
 }
 
 _GetNextDesktopNumberInColumn() {
     i := _GetCurrentDesktopNumber()
-	i := ( ((((i-1)//GeneralWorkspaceSize)) == GeneralWorkspaceSize-1) ? i : i+GeneralWorkspaceSize)
+	if (GeneralWorkspaceSize == 2) {
+        if (i != 3 and i != 4) {
+            i := i+2
+        }
+    }
+    else if (GeneralWorkspaceSize == 3) {
+        if (i != 7 and i != 8 and i != 9) {
+            i := i+3
+        }
+    }
 
     return i
 }
 
 _GetPreviousDesktopNumberInColumn() {
     i := _GetCurrentDesktopNumber()
-	i := ( ((((i-1)//GeneralWorkspaceSize)) == 0) ? i : i-GeneralWorkspaceSize)
+	if (GeneralWorkspaceSize == 2) {
+        if (i != 1 and i != 2) {
+            i := i-2
+        }
+    }
+    else if (GeneralWorkspaceSize == 3) {
+        if (i != 1 and i != 2 and i != 3) {
+            i := i-3
+        }
+    }
 
     return i
 }
