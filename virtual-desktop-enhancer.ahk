@@ -56,9 +56,8 @@ Menu, Tray, Click, 1
 
 ReadIni("settings.ini")
 
-global GeneralWorkspaceRows := (GeneralWorkspaceRows != "" and GeneralWorkspaceRows ~= "^[1-9]$") ? GeneralWorkspaceRows : 1
-global GeneralWorkspaceColumns := (GeneralWorkspaceColumns != "" and GeneralWorkspaceColumns ~= "^[1-9]$") ? GeneralWorkspaceColumns : 1
-global WorkspaceNum := GeneralWorkspaceRows * GeneralWorkspaceColumns
+global GeneralWorkspaceSize := (GeneralWorkspaceSize != "" and GeneralWorkspaceSize ~= "[1-3]") ? GeneralWorkspaceSize : 1
+global WorkspaceNum := GeneralWorkspaceSize * GeneralWorkspaceSize
 global TooltipsEnabled := (TooltipsEnabled != "" and TooltipsEnabled ~= "^[01]$") ? TooltipsEnabled : 1
 global TooltipsLifespan := (TooltipsLifespan != "" and TooltipsLifespan ~= "^\d+$") ? TooltipsLifespan : 750
 global TooltipsFadeOutAnimationDuration := (TooltipsFadeOutAnimationDuration != "" and TooltipsFadeOutAnimationDuration ~= "^\d+$") ? TooltipsFadeOutAnimationDuration : 100
@@ -73,7 +72,6 @@ global TOoltipsBackgroundAlpha := (TooltipsBackgroundAlpha != "" and TooltipsBac
 global GeneralUseNativePrevNextDesktopSwitchingIfConflicting := (GeneralUseNativePrevNextDesktopSwitchingIfConflicting ~= "^[01]$" && GeneralUseNativePrevNextDesktopSwitchingIfConflicting == "1" ? true : false)
 
 ; Initialize
-
 global taskbarPrimaryID=0
 global taskbarSecondaryID=0
 global previousDesktopNo=0
@@ -475,28 +473,28 @@ _SetDesktopName(n:=1, name:=0) {
 
 _GetNextDesktopNumberInRow() {
     i := _GetCurrentDesktopNumber()
-    i := ((mod(i,GeneralWorkspaceColumns) == 0) ? i : i+1)
+    i := ((mod(i,GeneralWorkspaceSize) == 0) ? i : i+1)
 
     return i
 }
 
 _GetPreviousDesktopNumberInRow() {
     i := _GetCurrentDesktopNumber()
-	i := ((mod(i,GeneralWorkspaceColumns) == 1) ? i : i-1)
+	i := ((mod(i,GeneralWorkspaceSize) == 1) ? i : i-1)
 
     return i
 }
 
 _GetNextDesktopNumberInColumn() {
     i := _GetCurrentDesktopNumber()
-	i := ( ((((i-1)//GeneralWorkspaceColumns)) == GeneralWorkspaceRows-1) ? i : i+GeneralWorkspaceColumns)
+	i := ( ((((i-1)//GeneralWorkspaceSize)) == GeneralWorkspaceSize-1) ? i : i+GeneralWorkspaceSize)
 
     return i
 }
 
 _GetPreviousDesktopNumberInColumn() {
     i := _GetCurrentDesktopNumber()
-	i := ( ((((i-1)//GeneralWorkspaceColumns)) == 0) ? i : i-GeneralWorkspaceColumns)
+	i := ( ((((i-1)//GeneralWorkspaceSize)) == 0) ? i : i-GeneralWorkspaceSize)
 
     return i
 }
@@ -604,11 +602,11 @@ _ChangeBackground(n:=1) {
 
 _ChangeAppearance(n:=1) {
     Menu, Tray, Tip, % _GetDesktopName(n)
-    if (FileExist("./icons/" . n ".ico")) {
-        Menu, Tray, Icon, icons/%n%.ico
+    if (FileExist("./icons/" GeneralWorkspaceSize "/" n ".ico")) {
+        Menu, Tray, Icon, icons/%GeneralWorkspaceSize%/%n%.ico
     }
     else {
-        Menu, Tray, Icon, icons/+.ico
+        Menu, Tray, Icon, icons/%GeneralWorkspaceSize%/+.ico
     }
 }
 
