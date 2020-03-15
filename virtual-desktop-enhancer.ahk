@@ -15,7 +15,6 @@
 DetectHiddenWindows, On
 hwnd := WinExist("ahk_pid " . DllCall("GetCurrentProcessId","Uint"))
 hwnd += 0x1000 << 32
-
 hVirtualDesktopAccessor := DllCall("LoadLibrary", "Str", A_ScriptDir . "\libraries\virtual-desktop-accessor.dll", "Ptr")
 
 global GoToDesktopNumberProc := DllCall("GetProcAddress", Ptr, hVirtualDesktopAccessor, AStr, "GoToDesktopNumber", "Ptr")
@@ -84,7 +83,6 @@ if (GeneralDefaultDesktop == initialDesktopNo) {
 hkModifiersSwitch          := KeyboardShortcutsModifiersSwitchDesktop
 hkModifiersMove            := KeyboardShortcutsModifiersMoveWindowToDesktop
 hkModifiersMoveAndSwitch   := KeyboardShortcutsModifiersMoveWindowAndSwitchToDesktop
-hkModifiersPlusTen         := KeyboardShortcutsModifiersNextTenDesktops
 hkIdentifierPrevious       := KeyboardShortcutsIdentifiersPreviousDesktop
 hkIdentifierNext           := KeyboardShortcutsIdentifiersNextDesktop
 hkIdentifierTop            := KeyboardShortcutsIdentifiersTopDesktop
@@ -146,7 +144,7 @@ setUpHotkeyWithCombo(combo, handler, settingPaths) {
 }
 
 i := 0
-while (i < 10) {
+while (i < 9) {
     hkDesktopI0 := KeyboardShortcutsIdentifiersDesktop%i%
     hkDesktopI1 := KeyboardShortcutsIdentifiersDesktopAlt%i%
     j := 0
@@ -155,9 +153,6 @@ while (i < 10) {
         setUpHotkeyWithOneSetOfModifiersAndIdentifier(hkModifiersSwitch, hkDesktopI, "OnShiftNumberedPress", "[KeyboardShortcutsModifiers] SwitchDesktop")
         setUpHotkeyWithOneSetOfModifiersAndIdentifier(hkModifiersMove, hkDesktopI, "OnMoveNumberedPress", "[KeyboardShortcutsModifiers] MoveWindowToDesktop")
         setUpHotkeyWithOneSetOfModifiersAndIdentifier(hkModifiersMoveAndSwitch, hkDesktopI, "OnMoveAndShiftNumberedPress", "[KeyboardShortcutsModifiers] MoveWindowAndSwitchToDesktop")
-        setUpHotkeyWithTwoSetOfModifiersAndIdentifier(hkModifiersSwitch, hkModifiersPlusTen, hkDesktopI, "OnShiftNumberedPressNextTen", "[KeyboardShortcutsModifiers] SwitchDesktop, [KeyboardShortcutsModifiers] NextTenDesktops")
-        setUpHotkeyWithTwoSetOfModifiersAndIdentifier(hkModifiersMove, hkModifiersPlusTen, hkDesktopI, "OnMoveNumberedPressNextTen", "[KeyboardShortcutsModifiers] MoveWindowToDesktop, [KeyboardShortcutsModifiers] NextTenDesktops")
-        setUpHotkeyWithTwoSetOfModifiersAndIdentifier(hkModifiersMoveAndSwitch, hkModifiersPlusTen, hkDesktopI, "OnMoveAndShiftNumberedPressNextTen", "[KeyboardShortcutsModifiers] MoveWindowAndSwitchToDesktop, [KeyboardShortcutsModifiers] NextTenDesktops")
         j := j + 1
     }
     i := i + 1
@@ -194,11 +189,6 @@ setUpHotkeyWithCombo(hkComboOpenDesktopManager, "OpenDesktopManager", "[Keyboard
 
 setUpHotkeyWithCombo(hkComboChangeDesktopName, "ChangeDesktopName", "[KeyboardShortcutsCombinations] ChangeDesktopName")
 
-if (GeneralTaskbarScrollSwitching) {
-    Hotkey, ~WheelUp, OnTaskbarScrollUp
-    Hotkey, ~WheelDown, OnTaskbarScrollDown
-}
-
 ; ======================================================================
 ; Event Handlers
 ; ======================================================================
@@ -207,24 +197,12 @@ OnShiftNumberedPress() {
     SwitchToDesktop(substr(A_ThisHotkey, 0, 1))
 }
 
-OnShiftNumberedPressNextTen() {
-    SwitchToDesktop(1 . substr(A_ThisHotkey, 0, 1))
-}
-
 OnMoveNumberedPress() {
     MoveToDesktop(substr(A_ThisHotkey, 0, 1))
 }
 
-OnMoveNumberedPressNextTen() {
-    MoveToDesktop(1 . substr(A_ThisHotkey, 0, 1))
-}
-
 OnMoveAndShiftNumberedPress() {
     MoveAndSwitchToDesktop(substr(A_ThisHotkey, 0, 1))
-}
-
-OnMoveAndShiftNumberedPressNextTen() {
-    MoveAndSwitchToDesktop(1 . substr(A_ThisHotkey, 0, 1))
 }
 
 OnShiftLeftPress() {
@@ -273,18 +251,6 @@ OnMoveAndShiftUpPress() {
 
 OnMoveAndShiftDownPress() {
     SwitchToDesktop(_GetNextDesktopNumberInColumn())
-}
-
-OnTaskbarScrollUp() {
-    if (_IsCursorHoveringTaskbar()) {
-        OnShiftLeftPress()
-    }
-}
-
-OnTaskbarScrollDown() {
-    if (_IsCursorHoveringTaskbar()) {
-        OnShiftRightPress()
-    }
 }
 
 OnPinWindowPress() {
@@ -337,7 +303,7 @@ OnDesktopSwitch(n:=1) {
     ; Give focus first, then display the popup, otherwise the popup could
     ; steal the focus from the legitimate window until it disappears.
     _FocusIfRequested()
-    _ChangeAppearance(n)
+    _ChangeIcon(n)
     _ChangeBackground(n)
 
     if (previousDesktopNo) {
@@ -383,7 +349,7 @@ ChangeDesktopName() {
     if (ErrorLevel == 0) {
         _SetDesktopName(currentDesktopNumber, newDesktopName)
     }
-    _ChangeAppearance(currentDesktopNumber)
+    _ChangeIcon(currentDesktopNumber)
 }
 
 Reload() {
@@ -425,7 +391,7 @@ _TruncateString(string:="", n:=10) {
 
 _GetDesktopName(n:=1) {
     if (n == 0) {
-        n := 10
+        n := 9
     }
     name := DesktopNames%n%
     if (!name) {
@@ -437,7 +403,7 @@ _GetDesktopName(n:=1) {
 ; Set the name of the nth desktop to the value of a given string.
 _SetDesktopName(n:=1, name:=0) {
     if (n == 0) {
-        n := 10
+        n := 9
     }
     if (!name) {
         ; Default value: "Desktop N".
@@ -489,7 +455,7 @@ _MoveCurrentWindowToDesktop(n:=1) {
 
 _ChangeDesktop(n:=1) {
     if (n == 0) {
-        n := 10
+        n := 9
     }
     DllCall(GoToDesktopNumberProc, Int, n-1)
 }
@@ -575,7 +541,7 @@ _ChangeBackground(n:=1) {
     }
 }
 
-_ChangeAppearance(n:=1) {
+_ChangeIcon(n:=1) {
     Menu, Tray, Tip, % _GetDesktopName(n)
     Try
         Menu, Tray, Icon, icons/%GeneralWorkspaceSize%/%n%.ico
@@ -600,7 +566,7 @@ _Focus() {
 ; Select the ahk_id of the foremost window in a given virtual desktop.
 _GetForemostWindowIdOnDesktop(n) {
     if (n == 0) {
-        n := 10
+        n := 9
     }
     ; Desktop count starts at 1 for this script, but at 0 for Windows.
     n -= 1
