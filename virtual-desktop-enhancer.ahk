@@ -7,7 +7,6 @@
 ; Credits to Ciantic: https://github.com/Ciantic/VirtualDesktopAccessor
 
 #Include, %A_ScriptDir%\libraries\read-ini.ahk
-#Include, %A_ScriptDir%\libraries\tooltip.ahk
 
 ; ======================================================================
 ; Set Up Library Hooks
@@ -43,8 +42,7 @@ VWMess(wParam, lParam, msg, hwnd) {
 ; Auto Execute
 ; ======================================================================
 
-; Set up tray tray menu
-
+; Set up tray and tray menu
 Menu, Tray, NoStandard
 Menu, Tray, Add, &Manage Desktops, OpenDesktopManager
 Menu, Tray, Default, &Manage Desktops
@@ -53,22 +51,10 @@ Menu, Tray, Add, Exit, Exit
 Menu, Tray, Click, 1
 
 ; Read and groom settings
-
 ReadIni("settings.ini")
 
 global GeneralWorkspaceSize := (GeneralWorkspaceSize != "" and GeneralWorkspaceSize ~= "[1-3]") ? GeneralWorkspaceSize : 1
-global WorkspaceNum := GeneralWorkspaceSize * GeneralWorkspaceSize
-global TooltipsEnabled := (TooltipsEnabled != "" and TooltipsEnabled ~= "^[01]$") ? TooltipsEnabled : 1
-global TooltipsLifespan := (TooltipsLifespan != "" and TooltipsLifespan ~= "^\d+$") ? TooltipsLifespan : 750
-global TooltipsFadeOutAnimationDuration := (TooltipsFadeOutAnimationDuration != "" and TooltipsFadeOutAnimationDuration ~= "^\d+$") ? TooltipsFadeOutAnimationDuration : 100
-global TooltipsPositionX := (TooltipsPositionX == "LEFT" or TooltipsPositionX == "CENTER" or TooltipsPositionX == "RIGHT") ? TooltipsPositionX : "CENTER"
-global TooltipsPositionY := (TooltipsPositionY == "TOP" or TooltipsPositionY == "CENTER" or TooltipsPositionY == "BOTTOM") ? TooltipsPositionY : "CENTER"
-global TooltipsOnEveryMonitor := (TooltipsOnEveryMonitor != "" and TooltipsOnEveryMonitor ~= "^[01]$") ? TooltipsOnEveryMonitor : 1
-global TooltipsFontSize := (TooltipsFontSize != "" and TooltipsFontSize ~= "^\d+$") ? TooltipsFontSize : 11
-global TooltipsFontInBold := (TooltipsFontInBold != "" and TooltipsFontInBold ~= "^[01]$") ? (TooltipsFontInBold ? 700 : 400) : 700
-global TooltipsFontColor := (TooltipsFontColor != "" and TooltipsFontColor ~= "^0x[0-9A-Fa-f]{1,6}$") ? TooltipsFontColor : "0xFFFFFF"
-global TooltipsBackgroundColor := (TooltipsBackgroundColor != "" and TooltipsBackgroundColor ~= "^0x[0-9A-Fa-f]{1,6}$") ? TooltipsBackgroundColor : "0x1F1F1F"
-global TOoltipsBackgroundAlpha := (TooltipsBackgroundAlpha != "" and TooltipsBackgroundAlpha ~= "^[0-9]{1,3}$") ? TooltipsBackgroundAlpha : 0
+global GeneralWorkspaceNum := GeneralWorkspaceSize * GeneralWorkspaceSize
 global GeneralUseNativePrevNextDesktopSwitchingIfConflicting := (GeneralUseNativePrevNextDesktopSwitchingIfConflicting ~= "^[01]$" && GeneralUseNativePrevNextDesktopSwitchingIfConflicting == "1" ? true : false)
 
 ; Initialize
@@ -305,14 +291,12 @@ OnPinWindowPress() {
     windowID := _GetCurrentWindowID()
     windowTitle := _GetCurrentWindowTitle()
     _PinWindow(windowID)
-    _ShowTooltipForPinnedWindow(windowTitle)
 }
 
 OnUnpinWindowPress() {
     windowID := _GetCurrentWindowID()
     windowTitle := _GetCurrentWindowTitle()
     _UnpinWindow(windowID)
-    _ShowTooltipForUnpinnedWindow(windowTitle)
 }
 
 OnTogglePinWindowPress() {
@@ -320,11 +304,9 @@ OnTogglePinWindowPress() {
     windowTitle := _GetCurrentWindowTitle()
     if (_GetIsWindowPinned(windowID)) {
         _UnpinWindow(windowID)
-        _ShowTooltipForUnpinnedWindow(windowTitle)
     }
     else {
         _PinWindow(windowID)
-        _ShowTooltipForPinnedWindow(windowTitle)
     }
 }
 
@@ -332,14 +314,12 @@ OnPinAppPress() {
     windowID := _GetCurrentWindowID()
     windowTitle := _GetCurrentWindowTitle()
     _PinApp()
-    _ShowTooltipForPinnedApp(windowTitle)
 }
 
 OnUnpinAppPress() {
     windowID := _GetCurrentWindowID()
     windowTitle := _GetCurrentWindowTitle()
     _UnpinApp()
-    _ShowTooltipForUnpinnedApp(windowTitle)
 }
 
 OnTogglePinAppPress() {
@@ -347,11 +327,9 @@ OnTogglePinAppPress() {
     windowTitle := _GetCurrentWindowTitle()
     if (_GetIsAppPinned(windowID)) {
         _UnpinApp(windowID)
-        _ShowTooltipForUnpinnedApp(windowTitle)
     }
     else {
         _PinApp(windowID)
-        _ShowTooltipForPinnedApp(windowTitle)
     }
 }
 
@@ -359,9 +337,6 @@ OnDesktopSwitch(n:=1) {
     ; Give focus first, then display the popup, otherwise the popup could
     ; steal the focus from the legitimate window until it disappears.
     _FocusIfRequested()
-    if (TooltipsEnabled) {
-        _ShowTooltipForDesktopSwitch(n)
-    }
     _ChangeAppearance(n)
     _ChangeBackground(n)
 
@@ -473,64 +448,28 @@ _SetDesktopName(n:=1, name:=0) {
 
 _GetNextDesktopNumberInRow() {
     i := _GetCurrentDesktopNumber()
-    if (GeneralWorkspaceSize == 2) {
-        if (i != 2 and i != 4) {
-            i := i+1
-        }
-    }
-    else if (GeneralWorkspaceSize == 3) {
-        if (i != 3 and i != 6 and i != 9) {
-            i := i+1
-        }
-    }
+    i := ((mod(i,GeneralWorkspaceSize) == 0) ? i : i+1)
 
     return i
 }
 
 _GetPreviousDesktopNumberInRow() {
     i := _GetCurrentDesktopNumber()
-	if (GeneralWorkspaceSize == 2) {
-        if (i != 1 and i != 3) {
-            i := i-1
-        }
-    }
-    else if (GeneralWorkspaceSize == 3) {
-        if (i != 1 and i != 4 and i != 7) {
-            i := i-1
-        }
-    }
+	i := ((mod(i,GeneralWorkspaceSize) == 1) ? i : i-1)
 
     return i
 }
 
 _GetNextDesktopNumberInColumn() {
     i := _GetCurrentDesktopNumber()
-	if (GeneralWorkspaceSize == 2) {
-        if (i != 3 and i != 4) {
-            i := i+2
-        }
-    }
-    else if (GeneralWorkspaceSize == 3) {
-        if (i != 7 and i != 8 and i != 9) {
-            i := i+3
-        }
-    }
+	i := ( ((((i-1)//GeneralWorkspaceSize)) == GeneralWorkspaceSize-1) ? i : i+GeneralWorkspaceSize)
 
     return i
 }
 
 _GetPreviousDesktopNumberInColumn() {
     i := _GetCurrentDesktopNumber()
-	if (GeneralWorkspaceSize == 2) {
-        if (i != 1 and i != 2) {
-            i := i-2
-        }
-    }
-    else if (GeneralWorkspaceSize == 3) {
-        if (i != 1 and i != 2 and i != 3) {
-            i := i-3
-        }
-    }
+	i := ( ((((i-1)//GeneralWorkspaceSize)) == 0) ? i : i-GeneralWorkspaceSize)
 
     return i
 }
@@ -599,14 +538,14 @@ _RunProgram(program:="", settingName:="") {
 
 _RunProgramWhenSwitchingToDesktop(n:=1) {
     if (n == 0) {
-        n := 10
+        n := 9
     }
     _RunProgram(RunProgramWhenSwitchingToDesktop%n%, "[RunProgramWhenSwitchingToDesktop] " . n)
 }
 
 _RunProgramWhenSwitchingFromDesktop(n:=1) {
     if (n == 0) {
-        n := 10
+        n := 9
     }
     _RunProgram(RunProgramWhenSwitchingFromDesktop%n%, "[RunProgramWhenSwitchingFromDesktop] " . n)
 }
@@ -638,12 +577,10 @@ _ChangeBackground(n:=1) {
 
 _ChangeAppearance(n:=1) {
     Menu, Tray, Tip, % _GetDesktopName(n)
-    if (FileExist("./icons/" GeneralWorkspaceSize "/" n ".ico")) {
+    Try
         Menu, Tray, Icon, icons/%GeneralWorkspaceSize%/%n%.ico
-    }
-    else {
-        Menu, Tray, Icon, icons/%GeneralWorkspaceSize%/+.ico
-    }
+    Catch Exception
+        Menu, Tray, Icon, icons/+.ico
 }
 
 ; Only give focus to the foremost window if it has been requested.
@@ -678,40 +615,4 @@ _GetForemostWindowIdOnDesktop(n) {
             return WindowID
         }
     }
-}
-
-_ShowTooltip(message:="") {
-    params := {}
-    params.message := message
-    params.lifespan := TooltipsLifespan
-    params.position := TooltipsCentered
-    params.fontSize := TooltipsFontSize
-    params.fontWeight := TooltipsFontInBold
-    params.fontColor := TooltipsFontColor
-    params.backgroundColor := TooltipsBackgroundColor
-    params.backgroundAlpha := TooltipsBackgroundAlpha
-    Toast(params)
-}
-
-_ShowTooltipForDesktopSwitch(n:=1) {
-    if (n == 0) {
-        n := 10
-    }
-    _ShowTooltip(_GetDesktopName(n))
-}
-
-_ShowTooltipForPinnedWindow(windowTitle) {
-    _ShowTooltip("Window """ . _TruncateString(windowTitle, 30) . """ pinned.")
-}
-
-_ShowTooltipForUnpinnedWindow(windowTitle) {
-    _ShowTooltip("Window """ . _TruncateString(windowTitle, 30) . """ unpinned.")
-}
-
-_ShowTooltipForPinnedApp(windowTitle) {
-    _ShowTooltip("App """ . _TruncateString(windowTitle, 30) . """ pinned.")
-}
-
-_ShowTooltipForUnpinnedApp(windowTitle) {
-    _ShowTooltip("App """ . _TruncateString(windowTitle, 30) . """ unpinned.")
 }
