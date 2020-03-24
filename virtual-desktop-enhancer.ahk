@@ -479,11 +479,10 @@ _GetIsAppPinned(windowID:="") {
 }
 
 _RunProgram(program:="", settingName:="") {
-    if (program <> "") {
-        if (FileExist(program)) {
+    if (program != "") {
+        try {
             Run, % program
-        }
-        else {
+        } catch {
             MsgBox, 16, Error, The program "%program%" is not valid. `nPlease reconfigure the "%settingName%" setting. `n`nPlease read the README for instructions.
         }
     }
