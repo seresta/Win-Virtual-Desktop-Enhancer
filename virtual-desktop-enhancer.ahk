@@ -54,7 +54,6 @@ ReadIni("settings.ini")
 
 global GeneralWorkspaceSize := (GeneralWorkspaceSize != "" and GeneralWorkspaceSize ~= "[1-3]") ? GeneralWorkspaceSize : 1
 global GeneralWorkspaceNum := GeneralWorkspaceSize * GeneralWorkspaceSize
-global GeneralUseNativePrevNextDesktopSwitchingIfConflicting := (GeneralUseNativePrevNextDesktopSwitchingIfConflicting ~= "^[01]$" && GeneralUseNativePrevNextDesktopSwitchingIfConflicting == "1" ? true : false)
 
 ; Initialize
 global taskbarPrimaryID=0
@@ -62,9 +61,6 @@ global taskbarSecondaryID=0
 global previousDesktopNo=0
 global doFocusAfterNextSwitch=0
 global hasSwitchedDesktopsBefore=1
-
-global changeDesktopNamesPopupTitle := "Windows 10 Virtual Desktop Enhancer"
-global changeDesktopNamesPopupText :=  "Change the desktop name of desktop #{:d}"
 
 initialDesktopNo := _GetCurrentDesktopNumber()
 
@@ -94,7 +90,7 @@ hkComboPinApp              := KeyboardShortcutsCombinationsPinApp
 hkComboUnpinApp            := KeyboardShortcutsCombinationsUnpinApp
 hkComboTogglePinApp        := KeyboardShortcutsCombinationsTogglePinApp
 hkComboOpenDesktopManager  := KeyboardShortcutsCombinationsOpenDesktopManager
-hkComboChangeDesktopName   := KeyboardShortcutsCombinationsChangeDesktopName
+hkComboQuickLaunchProgram  := KeyboardShortcutsCombinationsQuickLaunchProgram
 
 arrayS := Object(),                     arrayR := Object()
 arrayS.Insert("\s*|,"),                 arrayR.Insert("")
@@ -116,8 +112,8 @@ for index in arrayS {
     hkComboPinApp             := RegExReplace(hkComboPinApp, arrayS[index], arrayR[index])
     hkComboUnpinApp           := RegExReplace(hkComboUnpinApp, arrayS[index], arrayR[index])
     hkComboTogglePinApp       := RegExReplace(hkComboTogglePinApp, arrayS[index], arrayR[index])
-    hkComboOpenDesktopManager := RegExReplace(hkComboOpenDesktopManager, arrayS[index], arrayR[index])
-    hkComboChangeDesktopName  := RegExReplace(hkComboChangeDesktopName, arrayS[index], arrayR[index])    
+    hkComboOpenDesktopManager := RegExReplace(hkComboOpenDesktopManager, arrayS[index], arrayR[index])  
+    hkComboQuickLaunchProgram := RegExReplace(hkComboQuickLaunchProgram, arrayS[index], arrayR[index])
 }
 
 ; Setup key bindings dynamically
@@ -187,7 +183,7 @@ setUpHotkeyWithCombo(hkComboTogglePinApp, "OnTogglePinAppPress", "[KeyboardShort
 
 setUpHotkeyWithCombo(hkComboOpenDesktopManager, "OpenDesktopManager", "[KeyboardShortcutsCombinations] OpenDesktopManager")
 
-setUpHotkeyWithCombo(hkComboChangeDesktopName, "ChangeDesktopName", "[KeyboardShortcutsCombinations] ChangeDesktopName")
+setUpHotkeyWithCombo(hkComboQuickLaunchProgram, "OnQuickLaunchProgramPress", "[KeyboardShortcutsCombinations] QuickLaunchProgram")
 
 ; ======================================================================
 ; Event Handlers
@@ -306,11 +302,12 @@ OnDesktopSwitch(n:=1) {
     _ChangeIcon(n)
     _ChangeBackground(n)
 
-    if (previousDesktopNo) {
-        _RunProgramWhenSwitchingFromDesktop(previousDesktopNo)
-    }
-    _RunProgramWhenSwitchingToDesktop(n)
     previousDesktopNo := n
+}
+
+OnQuickLaunchProgramPress(n:=1) {
+    n := _GetCurrentDesktopNumber()
+   _RunProgram(QuickLaunchProgram%n%, "[QuickLaunchProgram] " . n)
 }
 
 ; ======================================================================
@@ -341,16 +338,6 @@ OpenDesktopManager() {
 ; file and reload the program.
 ; The changes are temprorary (names will be overwritten by the default values of
 ; 'settings.ini' when the program will be restarted.
-ChangeDesktopName() {
-    currentDesktopNumber := _GetCurrentDesktopNumber()
-    currentDesktopName := _GetDesktopName(currentDesktopNumber)
-    InputBox, newDesktopName, % changeDesktopNamesPopupTitle, % Format(changeDesktopNamesPopupText, _GetCurrentDesktopNumber()), , , , , , , , %currentDesktopName%
-    ; If the user choose "Cancel" ErrorLevel is set to 1.
-    if (ErrorLevel == 0) {
-        _SetDesktopName(currentDesktopNumber, newDesktopName)
-    }
-    _ChangeIcon(currentDesktopNumber)
-}
 
 Reload() {
     Reload
@@ -500,20 +487,6 @@ _RunProgram(program:="", settingName:="") {
             MsgBox, 16, Error, The program "%program%" is not valid. `nPlease reconfigure the "%settingName%" setting. `n`nPlease read the README for instructions.
         }
     }
-}
-
-_RunProgramWhenSwitchingToDesktop(n:=1) {
-    if (n == 0) {
-        n := 9
-    }
-    _RunProgram(RunProgramWhenSwitchingToDesktop%n%, "[RunProgramWhenSwitchingToDesktop] " . n)
-}
-
-_RunProgramWhenSwitchingFromDesktop(n:=1) {
-    if (n == 0) {
-        n := 9
-    }
-    _RunProgram(RunProgramWhenSwitchingFromDesktop%n%, "[RunProgramWhenSwitchingFromDesktop] " . n)
 }
 
 _ChangeBackground(n:=1) {
